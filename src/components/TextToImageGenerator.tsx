@@ -9,17 +9,43 @@ import { toast } from "sonner";
 
 type ImageFormat = 'png' | 'jpeg';
 type ImageSize = '256' | '512' | '1024' | 'custom';
+type ColorScheme = 'purple' | 'blue' | 'green' | 'orange' | 'dark' | 'light';
+type CornerRadius = 'sharp' | 'slight' | 'rounded' | 'very-rounded' | 'pill';
 
 interface CustomSize {
   width: number;
   height: number;
 }
 
+interface ColorSchemeConfig {
+  background: string[];
+  text: string;
+}
+
+const COLOR_SCHEMES: Record<ColorScheme, ColorSchemeConfig> = {
+  purple: { background: ['#8b5cf6', '#a855f7'], text: '#ffffff' },
+  blue: { background: ['#3b82f6', '#1d4ed8'], text: '#ffffff' },
+  green: { background: ['#10b981', '#059669'], text: '#ffffff' },
+  orange: { background: ['#f97316', '#ea580c'], text: '#ffffff' },
+  dark: { background: ['#1f2937', '#111827'], text: '#ffffff' },
+  light: { background: ['#f8fafc', '#e2e8f0'], text: '#1f2937' }
+};
+
+const CORNER_RADIUS_OPTIONS: Record<CornerRadius, number> = {
+  sharp: 0,
+  slight: 8,
+  rounded: 16,
+  'very-rounded': 32,
+  pill: -1 // Special value for pill shape
+};
+
 export const TextToImageGenerator = () => {
   const [text, setText] = useState("");
   const [imageFormat, setImageFormat] = useState<ImageFormat>('png');
   const [imageSize, setImageSize] = useState<ImageSize>('256');
   const [customSize, setCustomSize] = useState<CustomSize>({ width: 256, height: 256 });
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('purple');
+  const [cornerRadius, setCornerRadius] = useState<CornerRadius>('slight');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,10 +79,21 @@ export const TextToImageGenerator = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      const scheme = COLOR_SCHEMES[colorScheme];
+      const radiusValue = CORNER_RADIUS_OPTIONS[cornerRadius];
+      const actualRadius = radiusValue === -1 ? Math.min(dimensions.width, dimensions.height) / 2 : radiusValue;
+
+      // Create rounded rectangle path if needed
+      if (actualRadius > 0) {
+        ctx.beginPath();
+        ctx.roundRect(0, 0, dimensions.width, dimensions.height, actualRadius);
+        ctx.clip();
+      }
+
       // Create gradient background
       const gradient = ctx.createLinearGradient(0, 0, dimensions.width, dimensions.height);
-      gradient.addColorStop(0, '#8b5cf6');
-      gradient.addColorStop(1, '#a855f7');
+      gradient.addColorStop(0, scheme.background[0]);
+      gradient.addColorStop(1, scheme.background[1]);
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
@@ -64,12 +101,12 @@ export const TextToImageGenerator = () => {
       // Configure text styling
       const fontSize = Math.min(dimensions.width, dimensions.height) / 10;
       ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = scheme.text;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
       // Add text shadow for better readability
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowColor = scheme.text === '#ffffff' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)';
       ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
@@ -116,7 +153,7 @@ export const TextToImageGenerator = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [text, imageFormat, getSizeDimensions]);
+  }, [text, imageFormat, getSizeDimensions, colorScheme, cornerRadius]);
 
   const copyToClipboard = useCallback(async () => {
     if (!generatedImage) return;
@@ -216,6 +253,39 @@ export const TextToImageGenerator = () => {
                   <SelectItem value="512">512 × 512 px</SelectItem>
                   <SelectItem value="1024">1024 × 1024 px</SelectItem>
                   <SelectItem value="custom">Custom Size</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Color Scheme</Label>
+              <Select value={colorScheme} onValueChange={(value: ColorScheme) => setColorScheme(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="purple">Purple Gradient</SelectItem>
+                  <SelectItem value="blue">Blue Ocean</SelectItem>
+                  <SelectItem value="green">Green Nature</SelectItem>
+                  <SelectItem value="orange">Orange Sunset</SelectItem>
+                  <SelectItem value="dark">Dark Mode</SelectItem>
+                  <SelectItem value="light">Light & Clean</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Corner Radius</Label>
+              <Select value={cornerRadius} onValueChange={(value: CornerRadius) => setCornerRadius(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sharp">Sharp (0px)</SelectItem>
+                  <SelectItem value="slight">Slightly Rounded (8px)</SelectItem>
+                  <SelectItem value="rounded">Rounded (16px)</SelectItem>
+                  <SelectItem value="very-rounded">Very Rounded (32px)</SelectItem>
+                  <SelectItem value="pill">Pill Shape</SelectItem>
                 </SelectContent>
               </Select>
             </div>
