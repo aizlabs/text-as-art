@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Image as ImageIcon } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Copy, Download, Image as ImageIcon, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 type ImageFormat = 'png' | 'jpeg';
@@ -46,6 +47,7 @@ export const TextToImageGenerator = () => {
   const [customSize, setCustomSize] = useState<CustomSize>({ width: 256, height: 256 });
   const [colorScheme, setColorScheme] = useState<ColorScheme>('purple');
   const [cornerRadius, setCornerRadius] = useState<CornerRadius>('slight');
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -227,95 +229,107 @@ export const TextToImageGenerator = () => {
             </div>
           </div>
 
-          {/* Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Image Format</Label>
-              <Select value={imageFormat} onValueChange={(value: ImageFormat) => setImageFormat(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="png">PNG</SelectItem>
-                  <SelectItem value="jpeg">JPEG</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Options Section */}
+          <Collapsible open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                Options
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOptionsOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="space-y-4 pt-4">
+              {/* Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Image Format</Label>
+                  <Select value={imageFormat} onValueChange={(value: ImageFormat) => setImageFormat(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="png">PNG</SelectItem>
+                      <SelectItem value="jpeg">JPEG</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Image Size</Label>
-              <Select value={imageSize} onValueChange={(value: ImageSize) => setImageSize(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="256">256 × 256 px</SelectItem>
-                  <SelectItem value="512">512 × 512 px</SelectItem>
-                  <SelectItem value="1024">1024 × 1024 px</SelectItem>
-                  <SelectItem value="custom">Custom Size</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Image Size</Label>
+                  <Select value={imageSize} onValueChange={(value: ImageSize) => setImageSize(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="256">256 × 256 px</SelectItem>
+                      <SelectItem value="512">512 × 512 px</SelectItem>
+                      <SelectItem value="1024">1024 × 1024 px</SelectItem>
+                      <SelectItem value="custom">Custom Size</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Color Scheme</Label>
-              <Select value={colorScheme} onValueChange={(value: ColorScheme) => setColorScheme(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="purple">Purple Gradient</SelectItem>
-                  <SelectItem value="blue">Blue Ocean</SelectItem>
-                  <SelectItem value="green">Green Nature</SelectItem>
-                  <SelectItem value="orange">Orange Sunset</SelectItem>
-                  <SelectItem value="dark">Dark Mode</SelectItem>
-                  <SelectItem value="light">Light & Clean</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Color Scheme</Label>
+                  <Select value={colorScheme} onValueChange={(value: ColorScheme) => setColorScheme(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="purple">Purple Gradient</SelectItem>
+                      <SelectItem value="blue">Blue Ocean</SelectItem>
+                      <SelectItem value="green">Green Nature</SelectItem>
+                      <SelectItem value="orange">Orange Sunset</SelectItem>
+                      <SelectItem value="dark">Dark Mode</SelectItem>
+                      <SelectItem value="light">Light & Clean</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Corner Radius</Label>
-              <Select value={cornerRadius} onValueChange={(value: CornerRadius) => setCornerRadius(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sharp">Sharp (0px)</SelectItem>
-                  <SelectItem value="slight">Slightly Rounded (8px)</SelectItem>
-                  <SelectItem value="rounded">Rounded (16px)</SelectItem>
-                  <SelectItem value="very-rounded">Very Rounded (32px)</SelectItem>
-                  <SelectItem value="pill">Pill Shape</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Custom Size Inputs */}
-          {imageSize === 'custom' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Width (px)</Label>
-                <Input
-                  type="number"
-                  value={customSize.width}
-                  onChange={(e) => setCustomSize(prev => ({ ...prev, width: parseInt(e.target.value) || 256 }))}
-                  min="100"
-                  max="2048"
-                />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Corner Radius</Label>
+                  <Select value={cornerRadius} onValueChange={(value: CornerRadius) => setCornerRadius(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sharp">Sharp (0px)</SelectItem>
+                      <SelectItem value="slight">Slightly Rounded (8px)</SelectItem>
+                      <SelectItem value="rounded">Rounded (16px)</SelectItem>
+                      <SelectItem value="very-rounded">Very Rounded (32px)</SelectItem>
+                      <SelectItem value="pill">Pill Shape</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Height (px)</Label>
-                <Input
-                  type="number"
-                  value={customSize.height}
-                  onChange={(e) => setCustomSize(prev => ({ ...prev, height: parseInt(e.target.value) || 256 }))}
-                  min="100"
-                  max="2048"
-                />
-              </div>
-            </div>
-          )}
+
+              {/* Custom Size Inputs */}
+              {imageSize === 'custom' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Width (px)</Label>
+                    <Input
+                      type="number"
+                      value={customSize.width}
+                      onChange={(e) => setCustomSize(prev => ({ ...prev, width: parseInt(e.target.value) || 256 }))}
+                      min="100"
+                      max="2048"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Height (px)</Label>
+                    <Input
+                      type="number"
+                      value={customSize.height}
+                      onChange={(e) => setCustomSize(prev => ({ ...prev, height: parseInt(e.target.value) || 256 }))}
+                      min="100"
+                      max="2048"
+                    />
+                  </div>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Generate Button */}
           <Button
