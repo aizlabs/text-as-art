@@ -255,6 +255,7 @@ export const TextToImageGenerator = () => {
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Text to Image Generator
             </h1>
+            {/* Updated component - cache refresh */}
             <p className="text-muted-foreground">
               Convert your text into beautiful images instantly
             </p>
