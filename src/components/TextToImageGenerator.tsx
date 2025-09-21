@@ -32,69 +32,106 @@ const COLOR_SCHEMES: Record<ColorScheme, ColorSchemeConfig> = {
   light: { background: ['#f8fafc', '#e2e8f0'], text: '#1f2937' }
 };
 
-const SHAPE_OPTIONS: Record<ImageShape, (ctx: CanvasRenderingContext2D, width: number, height: number) => void> = {
-  rectangle: () => {}, // No clipping needed
-  rounded: (ctx, width, height) => {
-    ctx.beginPath();
-    ctx.roundRect(0, 0, width, height, 16);
-    ctx.clip();
+interface ShapeConfig {
+  clipFunction: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  textArea: (width: number, height: number) => { width: number; height: number; offsetX: number; offsetY: number; fontScale: number };
+}
+
+const SHAPE_OPTIONS: Record<ImageShape, ShapeConfig> = {
+  rectangle: {
+    clipFunction: () => {}, // No clipping needed
+    textArea: (width, height) => ({ width: width * 0.8, height: height * 0.8, offsetX: 0, offsetY: 0, fontScale: 1 })
   },
-  circle: (ctx, width, height) => {
-    const radius = Math.min(width, height) / 2;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.clip();
+  rounded: {
+    clipFunction: (ctx, width, height) => {
+      ctx.beginPath();
+      ctx.roundRect(0, 0, width, height, 16);
+      ctx.clip();
+    },
+    textArea: (width, height) => ({ width: width * 0.8, height: height * 0.8, offsetX: 0, offsetY: 0, fontScale: 1 })
   },
-  rhombus: (ctx, width, height) => {
-    ctx.beginPath();
-    ctx.moveTo(width / 2, 0);
-    ctx.lineTo(width, height / 2);
-    ctx.lineTo(width / 2, height);
-    ctx.lineTo(0, height / 2);
-    ctx.closePath();
-    ctx.clip();
-  },
-  triangle: (ctx, width, height) => {
-    ctx.beginPath();
-    ctx.moveTo(width / 2, 0);
-    ctx.lineTo(width, height);
-    ctx.lineTo(0, height);
-    ctx.closePath();
-    ctx.clip();
-  },
-  hexagon: (ctx, width, height) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) / 2;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3;
-      const x = centerX + radius * Math.cos(angle);
-      const y = centerY + radius * Math.sin(angle);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+  circle: {
+    clipFunction: (ctx, width, height) => {
+      const radius = Math.min(width, height) / 2;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.clip();
+    },
+    textArea: (width, height) => {
+      // Inscribed square in circle
+      const diameter = Math.min(width, height);
+      const textSize = diameter * 0.7; // √2/2 ≈ 0.707
+      return { width: textSize, height: textSize, offsetX: 0, offsetY: 0, fontScale: 0.9 };
     }
-    ctx.closePath();
-    ctx.clip();
   },
-  star: (ctx, width, height) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const outerRadius = Math.min(width, height) / 2;
-    const innerRadius = outerRadius * 0.4;
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
-      const angle = (i * Math.PI) / 5;
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const x = centerX + radius * Math.cos(angle - Math.PI / 2);
-      const y = centerY + radius * Math.sin(angle - Math.PI / 2);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+  rhombus: {
+    clipFunction: (ctx, width, height) => {
+      ctx.beginPath();
+      ctx.moveTo(width / 2, 0);
+      ctx.lineTo(width, height / 2);
+      ctx.lineTo(width / 2, height);
+      ctx.lineTo(0, height / 2);
+      ctx.closePath();
+      ctx.clip();
+    },
+    textArea: (width, height) => ({ width: width * 0.5, height: height * 0.5, offsetX: 0, offsetY: 0, fontScale: 0.8 })
+  },
+  triangle: {
+    clipFunction: (ctx, width, height) => {
+      ctx.beginPath();
+      ctx.moveTo(width / 2, 0);
+      ctx.lineTo(width, height);
+      ctx.lineTo(0, height);
+      ctx.closePath();
+      ctx.clip();
+    },
+    textArea: (width, height) => ({ width: width * 0.6, height: height * 0.4, offsetX: 0, offsetY: height * 0.15, fontScale: 0.7 })
+  },
+  hexagon: {
+    clipFunction: (ctx, width, height) => {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.clip();
+    },
+    textArea: (width, height) => {
+      const size = Math.min(width, height) * 0.65;
+      return { width: size, height: size, offsetX: 0, offsetY: 0, fontScale: 0.85 };
     }
-    ctx.closePath();
-    ctx.clip();
+  },
+  star: {
+    clipFunction: (ctx, width, height) => {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const outerRadius = Math.min(width, height) / 2;
+      const innerRadius = outerRadius * 0.4;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5;
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const x = centerX + radius * Math.cos(angle - Math.PI / 2);
+        const y = centerY + radius * Math.sin(angle - Math.PI / 2);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.clip();
+    },
+    textArea: (width, height) => {
+      const size = Math.min(width, height) * 0.35;
+      return { width: size, height: size, offsetX: 0, offsetY: 0, fontScale: 0.6 };
+    }
   }
 };
 
@@ -140,10 +177,11 @@ export const TextToImageGenerator = () => {
       if (!ctx) return;
 
       const scheme = COLOR_SCHEMES[colorScheme];
-      const shapeFunction = SHAPE_OPTIONS[imageShape];
+      const shapeConfig = SHAPE_OPTIONS[imageShape];
+      const textAreaConfig = shapeConfig.textArea(dimensions.width, dimensions.height);
 
       // Apply shape clipping
-      shapeFunction(ctx, dimensions.width, dimensions.height);
+      shapeConfig.clipFunction(ctx, dimensions.width, dimensions.height);
 
       // Create gradient background
       const gradient = ctx.createLinearGradient(0, 0, dimensions.width, dimensions.height);
@@ -153,8 +191,9 @@ export const TextToImageGenerator = () => {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-      // Configure text styling
-      const fontSize = Math.min(dimensions.width, dimensions.height) / 10;
+      // Configure text styling with shape-specific scaling
+      const baseFontSize = Math.min(dimensions.width, dimensions.height) / 10;
+      const fontSize = baseFontSize * textAreaConfig.fontScale;
       ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = scheme.text;
       ctx.textAlign = 'center';
@@ -166,11 +205,11 @@ export const TextToImageGenerator = () => {
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
 
-      // Word wrap functionality
+      // Word wrap functionality with shape-specific max width
       const words = text.split(' ');
       const lines: string[] = [];
       let currentLine = '';
-      const maxWidth = dimensions.width * 0.8;
+      const maxWidth = textAreaConfig.width;
 
       for (const word of words) {
         const testLine = currentLine + (currentLine ? ' ' : '') + word;
@@ -187,14 +226,16 @@ export const TextToImageGenerator = () => {
         lines.push(currentLine);
       }
 
-      // Draw text lines
+      // Draw text lines with shape-specific positioning
       const lineHeight = fontSize * 1.2;
       const totalHeight = lines.length * lineHeight;
-      const startY = (dimensions.height - totalHeight) / 2 + fontSize / 2;
+      const centerX = dimensions.width / 2 + textAreaConfig.offsetX;
+      const centerY = dimensions.height / 2 + textAreaConfig.offsetY;
+      const startY = centerY - totalHeight / 2 + fontSize / 2;
 
       lines.forEach((line, index) => {
         const y = startY + index * lineHeight;
-        ctx.fillText(line, dimensions.width / 2, y);
+        ctx.fillText(line, centerX, y);
       });
 
       // Convert canvas to image
