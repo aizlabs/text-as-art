@@ -11,7 +11,7 @@ import { toast } from "sonner";
 type ImageFormat = 'png' | 'jpeg';
 type ImageSize = '256' | '512' | '1024' | 'custom';
 type ColorScheme = 'purple' | 'blue' | 'green' | 'orange' | 'dark' | 'light';
-type CornerRadius = 'sharp' | 'slight' | 'rounded' | 'very-rounded' | 'pill';
+type ImageShape = 'rectangle' | 'rounded' | 'circle' | 'rhombus' | 'triangle' | 'hexagon' | 'star';
 
 interface CustomSize {
   width: number;
@@ -32,12 +32,70 @@ const COLOR_SCHEMES: Record<ColorScheme, ColorSchemeConfig> = {
   light: { background: ['#f8fafc', '#e2e8f0'], text: '#1f2937' }
 };
 
-const CORNER_RADIUS_OPTIONS: Record<CornerRadius, number> = {
-  sharp: 0,
-  slight: 8,
-  rounded: 16,
-  'very-rounded': 32,
-  pill: -1 // Special value for pill shape
+const SHAPE_OPTIONS: Record<ImageShape, (ctx: CanvasRenderingContext2D, width: number, height: number) => void> = {
+  rectangle: () => {}, // No clipping needed
+  rounded: (ctx, width, height) => {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, 16);
+    ctx.clip();
+  },
+  circle: (ctx, width, height) => {
+    const radius = Math.min(width, height) / 2;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.clip();
+  },
+  rhombus: (ctx, width, height) => {
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width, height / 2);
+    ctx.lineTo(width / 2, height);
+    ctx.lineTo(0, height / 2);
+    ctx.closePath();
+    ctx.clip();
+  },
+  triangle: (ctx, width, height) => {
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    ctx.clip();
+  },
+  hexagon: (ctx, width, height) => {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * Math.PI) / 3;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.clip();
+  },
+  star: (ctx, width, height) => {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const outerRadius = Math.min(width, height) / 2;
+    const innerRadius = outerRadius * 0.4;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI) / 5;
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const x = centerX + radius * Math.cos(angle - Math.PI / 2);
+      const y = centerY + radius * Math.sin(angle - Math.PI / 2);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.clip();
+  }
 };
 
 export const TextToImageGenerator = () => {
@@ -46,7 +104,7 @@ export const TextToImageGenerator = () => {
   const [imageSize, setImageSize] = useState<ImageSize>('256');
   const [customSize, setCustomSize] = useState<CustomSize>({ width: 256, height: 256 });
   const [colorScheme, setColorScheme] = useState<ColorScheme>('purple');
-  const [cornerRadius, setCornerRadius] = useState<CornerRadius>('slight');
+  const [imageShape, setImageShape] = useState<ImageShape>('rounded');
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -82,15 +140,10 @@ export const TextToImageGenerator = () => {
       if (!ctx) return;
 
       const scheme = COLOR_SCHEMES[colorScheme];
-      const radiusValue = CORNER_RADIUS_OPTIONS[cornerRadius];
-      const actualRadius = radiusValue === -1 ? Math.min(dimensions.width, dimensions.height) / 2 : radiusValue;
+      const shapeFunction = SHAPE_OPTIONS[imageShape];
 
-      // Create rounded rectangle path if needed
-      if (actualRadius > 0) {
-        ctx.beginPath();
-        ctx.roundRect(0, 0, dimensions.width, dimensions.height, actualRadius);
-        ctx.clip();
-      }
+      // Apply shape clipping
+      shapeFunction(ctx, dimensions.width, dimensions.height);
 
       // Create gradient background
       const gradient = ctx.createLinearGradient(0, 0, dimensions.width, dimensions.height);
@@ -155,7 +208,7 @@ export const TextToImageGenerator = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [text, imageFormat, getSizeDimensions, colorScheme, cornerRadius]);
+  }, [text, imageFormat, getSizeDimensions, colorScheme, imageShape]);
 
   const copyToClipboard = useCallback(async () => {
     if (!generatedImage) return;
@@ -287,17 +340,19 @@ export const TextToImageGenerator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Corner Radius</Label>
-                  <Select value={cornerRadius} onValueChange={(value: CornerRadius) => setCornerRadius(value)}>
+                  <Label className="text-sm font-medium">Shape</Label>
+                  <Select value={imageShape} onValueChange={(value: ImageShape) => setImageShape(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sharp">Sharp (0px)</SelectItem>
-                      <SelectItem value="slight">Slightly Rounded (8px)</SelectItem>
-                      <SelectItem value="rounded">Rounded (16px)</SelectItem>
-                      <SelectItem value="very-rounded">Very Rounded (32px)</SelectItem>
-                      <SelectItem value="pill">Pill Shape</SelectItem>
+                      <SelectItem value="rectangle">Rectangle</SelectItem>
+                      <SelectItem value="rounded">Rounded Rectangle</SelectItem>
+                      <SelectItem value="circle">Circle</SelectItem>
+                      <SelectItem value="rhombus">Rhombus</SelectItem>
+                      <SelectItem value="triangle">Triangle</SelectItem>
+                      <SelectItem value="hexagon">Hexagon</SelectItem>
+                      <SelectItem value="star">Star</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
