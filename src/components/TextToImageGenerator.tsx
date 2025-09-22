@@ -11,7 +11,7 @@ import { toast } from "sonner";
 type ImageFormat = 'png' | 'jpeg';
 type ImageSize = '256' | '512' | '1024' | 'custom';
 type ColorScheme = 'purple' | 'blue' | 'green' | 'orange' | 'dark' | 'light';
-type ImageShape = 'rectangle' | 'rounded' | 'circle' | 'rhombus' | 'triangle' | 'hexagon' | 'star';
+type ImageShape = 'rectangle' | 'rounded' | 'circle' | 'rhombus' | 'triangle' | 'hexagon' | 'star' | 'heart';
 
 interface CustomSize {
   width: number;
@@ -131,6 +131,29 @@ const SHAPE_OPTIONS: Record<ImageShape, ShapeConfig> = {
     textArea: (width, height) => {
       const size = Math.min(width, height) * 0.35;
       return { width: size, height: size, offsetX: 0, offsetY: 0, fontScale: 0.6 };
+    }
+  },
+  heart: {
+    clipFunction: (ctx, width, height) => {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const size = Math.min(width, height) * 0.8;
+      const scale = size / 100;
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY + (15 * scale));
+      ctx.bezierCurveTo(centerX, centerY + (12 * scale), centerX - (8 * scale), centerY - (5 * scale), centerX - (25 * scale), centerY - (5 * scale));
+      ctx.bezierCurveTo(centerX - (35 * scale), centerY - (5 * scale), centerX - (35 * scale), centerY + (5 * scale), centerX - (35 * scale), centerY + (5 * scale));
+      ctx.bezierCurveTo(centerX - (35 * scale), centerY + (15 * scale), centerX - (25 * scale), centerY + (25 * scale), centerX, centerY + (40 * scale));
+      ctx.bezierCurveTo(centerX + (25 * scale), centerY + (25 * scale), centerX + (35 * scale), centerY + (15 * scale), centerX + (35 * scale), centerY + (5 * scale));
+      ctx.bezierCurveTo(centerX + (35 * scale), centerY + (5 * scale), centerX + (35 * scale), centerY - (5 * scale), centerX + (25 * scale), centerY - (5 * scale));
+      ctx.bezierCurveTo(centerX + (8 * scale), centerY - (5 * scale), centerX, centerY + (12 * scale), centerX, centerY + (15 * scale));
+      ctx.closePath();
+      ctx.clip();
+    },
+    textArea: (width, height) => {
+      const size = Math.min(width, height) * 0.4;
+      return { width: size, height: size * 0.6, offsetX: 0, offsetY: -height * 0.05, fontScale: 0.7 };
     }
   }
 };
@@ -395,6 +418,7 @@ export const TextToImageGenerator = () => {
                       <SelectItem value="triangle">Triangle</SelectItem>
                       <SelectItem value="hexagon">Hexagon</SelectItem>
                       <SelectItem value="star">Star</SelectItem>
+                      <SelectItem value="heart">Heart</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
